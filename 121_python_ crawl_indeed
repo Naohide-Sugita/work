@@ -1,0 +1,181 @@
+from selenium import webdriver
+from time import sleep
+import pandas as pd
+from selenium.webdriver.chrome.options import Options
+
+option = Options()                          # オプションを用意
+option.add_argument('--headless')           # ヘッドレスモードの設定を付与
+browser = webdriver.Chrome(options=option)   # Chromeを準備(optionでヘッドレスモードにしている）
+
+#=============================================================================================================================
+# 設定
+#=============================================================================================================================
+
+## 起点URL 
+#url = 'https://jp.indeed.com/%E6%B1%82%E4%BA%BA?q=%C2%A56%2C000%2C000%E3%80%80%E3%83%87%E3%83%BC%E3%82%BF&l=%E6%9D%B1%E4%BA%AC%E9%83%BD'
+
+## ページングURL
+page = 'https://jp.indeed.com/jobs?q=%C2%A56%2C000%2C000%E3%80%80%E3%83%87%E3%83%BC%E3%82%BF%E3%80%80%E5%A4%96%E8%B3%87&l=%E6%9D%B1%E4%BA%AC%E9%83%BD&start={}'
+
+## スクレイピング箇所
+
+### URL
+results_01 =[]
+column_name_01 = 'URL'
+r01_xpath = '/html/body/table[2]/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/a'
+### タイトル
+results_02 =[]
+column_name_02 = 'title'
+r02_xpath = '/html/body/div[1]/div[2]/div[3]/div/div/div[1]/div[1]/div[1]/h3'
+### 会社名
+results_03 =[]
+column_name_03 = 'name'
+r03_xpath = '/html/body/div[1]/div[2]/div[3]/div/div/div[1]/div[1]/div[1]/div[1]/div/div/div[1]'
+### 勤務地
+results_04 =[]
+column_name_04 = 'place'
+r04_xpath = '/html/body/div[1]/div[2]/div[3]/div/div/div[1]/div[1]/div[1]/div[1]/div/div/div[3]'
+### 年収
+results_05 =[]
+column_name_05 = 'income'
+r05_xpath = '/html/body/div[1]/div[2]/div[3]/div/div/div[1]/div[1]/div[1]/div[2]/span[1]'
+### 雇用形態
+results_06 = []
+column_name_06 = 'status'
+r06_xpath = '/html/body/div[1]/div[2]/div[3]/div/div/div[1]/div[1]/div[1]/div[2]/span[2]'
+### 詳細
+results_07 =[]
+column_name_07 = 'detail'
+r07_xpath = '//*[@id="jobDescriptionText"]'
+
+
+#=============================================================================================================================
+# クロール&スクレイピング
+#=============================================================================================================================
+print('クロールを始めます')
+#time.sleep(1)
+print('100件ほどデータをとるので30分ほどかかります')
+#time.sleep(1)
+print('コーヒーでも飲んでゆっくりしていてください')
+#time.sleep(1)
+print('ちなみにわたしはブラック派です')
+#time.sleep(1)
+print('あ、ブラウザが自動で開きますが閉じないでくださいね')
+
+count = 1
+index_page = 0
+for pages in range(5):
+    browser.get(page.format(index_page))
+    
+    
+    ## 詳細ページのURLのクラスを指定
+    elem_detail_btn = browser.find_elements_by_class_name('title')
+   
+    index_detail = 0
+    for elem_detail_btns in range(len(elem_detail_btn)):
+
+        try:
+            elem_detail_btn[index_detail].click()
+        except:
+            elem_close_btn = browser.find_element_by_id('popover-link-x')
+            elem_close_btn.click()
+            elem_detail_btn[index_detail].click()
+        finally:            
+            ## 詳細ページに移動
+            browser.switch_to.window(browser.window_handles[-1])
+            
+            ## 5秒待機
+            browser.implicitly_wait(15) 
+
+            ## スクレイピング _ 各項目取得 
+             
+            r01 = browser.current_url 
+            results_01.append(r01)
+            try:
+                r02 = 'Non'
+                r02 = browser.find_element_by_xpath(r02_xpath).text
+            except Exception as e:
+                print(e)                
+            finally:    
+                results_02.append(r02)
+               
+            try:
+                r03 = 'Non'
+                r03 = browser.find_element_by_xpath(r03_xpath).text
+            except Exception as e:
+                print(e)
+            finally:
+                results_03.append(r03)
+                
+            try:
+                r04 = 'Non'
+                r04 = browser.find_element_by_xpath(r04_xpath).text
+            except Exception as e:
+                print(e)
+            finally: 
+                results_04.append(r04)
+                
+            try:
+                r05 = 'Non'
+                r05 = browser.find_element_by_xpath(r05_xpath).text
+            except Exception as e:
+                print(e)
+            finally: 
+                results_05.append(r05)
+                
+            try:
+                r06 = 'Non'
+                r06 = browser.find_element_by_xpath(r06_xpath).text
+            except Exception as e:
+                print(e)
+            finally: 
+                results_06.append(r06)
+                
+            try:
+                r07 = 'Non'
+                r07 = browser.find_element_by_xpath(r07_xpath).text
+            except Exception as e:
+                print(e)
+            finally: 
+                results_07.append(r07)
+            
+
+            print("取得件数",str(count),"件：",r02)
+            count +=1    
+            ## インスタンスウインドウのみ閉じる
+            browser.close()
+            
+            ## 一覧ページに移動
+            browser.switch_to.window(browser.window_handles[0])
+            
+
+        index_detail +=1
+            
+    index_page +=10
+        
+##ブラウザを閉じる    
+browser.quit()
+
+#=============================================================================================================================
+# データ整形&出力
+#=============================================================================================================================
+
+## DateFrameを定義
+df = pd.DataFrame()
+df[column_name_01] = results_01
+df[column_name_02] = results_02
+df[column_name_03] = results_03
+df[column_name_04] = results_04
+df[column_name_05] = results_05
+df[column_name_06] = results_06
+df[column_name_07] = results_07
+df
+
+#CSVへ出力
+df.to_csv('results_indeed.csv',index=True)
+
+print('CSVファイルを出力しました')
+#time.sleep(1)
+print('処理完了')
+#time.sleep(1)
+print('おつかれね')
